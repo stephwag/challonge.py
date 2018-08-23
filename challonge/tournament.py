@@ -17,64 +17,94 @@ class Tournament:
             'start_at', 'check_in_duration', 'grand_finals_modifier'
         ]
 
-    def __init__(self, tid, session=None, loop=None, include_participants=False, include_matches=False):
-        client = Client(session=session, loop=loop)
-        data = client.get(api_base + 'tournaments/' + str(tid) + '.json')
-        for k in data['tournament']:
-            setattr(self, k, data['tournament'][k])
-
-        self.original = copy.copy(self)
-
     def base_url(self):
         return (api_base + 'tournaments/' + str(self.id))
 
-    def update(self, session=None, loop=None):
-        params = { 'api_key' : challonge.api_key , 'tournament' : {} }
-        client = Client(session=session, loop=loop)
-
-        for k in UPDATE_FIELDS:
-            if getattr(self, k) != getattr(self.original, k):
-                params['tournament'][k] = getattr(self, k)
-        
-        data = client.put(self.base_url() + '.json', params)
-
-        if data is not None:
-            for k in data['tournament']:
+    def update_object(self, data):
+        for k in data['tournament']:
+            if k == 'participants':
+                setattr(self, k, self.build_participants(data['tournament']['participants']))
+            elif k == 'matches':
+                setattr(self, k, self.build_participants(data['tournament']['matches']))
+            else:
                 setattr(self, k, data['tournament'][k])
 
         self.original = copy.copy(self)
 
-    def delete(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
+        return self
+
+    async def async_init(self, tid, session, include_participants=False, include_matches=False):
+        url = api_base + 'tournaments/' + str(tid) + '.json?'
+        if include_participants: url += 'include_participants=1&'
+        if include_matches: url += 'include_matches=1&'
+
+        async with session as sess:
+            async with sess.get(url, params={'api_key': challonge.api_key}) as r:
+                if r.status == 200:
+                    data = await r.json()
+                    return self.update_object(data)
+                else:
+                    error.raise_error(r)
+
+    async def update(self, session):
+        params = { 'api_key' : challonge.api_key , 'tournament' : {} }
+
+        for k in self.UPDATE_FIELDS:
+            if getattr(self, k) != getattr(self.original, k):
+                params['tournament'][k] = getattr(self, k)
+        
+        async with session as sess:
+            async with sess.put(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params) as r:
+                if r.status == 200:
+                    data = await r.json()
+                    return self.update_object(data)
+                else:
+                    error.raise_error(r)
+
+    async def delete(self, session):
         return client.delete(self.base_url() + '.json')
 
-    def get(self, session=None, loop=None, refresh=True):
-        client = Client(session=session, loop=loop)
-        data = client.get(self.base_url() + '.json')
-        if refresh:
-            for k in data['tournament']:
-                setattr(self, k, data['tournament'][k])
-            self.original = copy.copy(self)
-            return self
-        else:
-            return data
+        async with session as sess:
+            async with sess.delete(self.base_url() + '.json', params={'api_key': challonge.api_key}) as r:
+                if r.status == 200:
+                    return await True
+                else:
+                    error.raise_error(r)
     
-    def svg(self):
-        client = Client(session=session, loop=loop)
-        return client.get('https://challonge.com/' + str(self.id) + '.svg', response_type='text')
+    async def svg(self, session):
+        async with session as sess:
+            async with sess.get('https://challonge.com/' + str(self.url) + '.svg', params={'api_key': challonge.api_key}) as r:
+                if r.status == 200:
+                    return await r.text()
+                else:
+                    error.raise_error(r)
 
-    def participants(self, include_matches=False, session=None, loop=None):
-        client = Client(session=session, loop=loop)
-        data = client.get(self.base_url() + '/participants.json')
-        return self.build_participants(data)
+    async def get_participants(self, session, include_matches=False, reload_array=False):
+        url = self.base_url() + '/participants.json'
+        if include_matches: url += '?include_matches=1'
 
-    def participant(self, pid, include_matches=False, session=None, loop=None):
+        async with session as sess:
+            async with sess.get(url, params={'api_key': challonge.api_key}) as r:
+                if r.status == 200:
+                    data = await r.json()
+                    plist = self.build_participants(data)
+                    if reload_array:
+                        setattr(self, 'participants', plist)
+                    return plist
+                else:
+                    error.raise_error(r)
+
+    def get_participant(self, pid, include_matches=False, session=None, loop=None):
         client = Client(session=session, loop=loop)
         data = client.get(self.base_url() + '/participants/' + str(pid) + '.json')
-        print(data)
         return Participant(data=data)
 
     def add_participant(self, data=None, session=None, loop=None):
+        client = Client(session=session, loop=loop)
+        data = client.post(self.base_url() + '/participants.json', data)
+        return Participant(data=data)
+
+    def bulk_add_participants(self, data=None, session=None, loop=None):
         client = Client(session=session, loop=loop)
         data = client.post(self.base_url() + '/participants.json', data)
         return Participant(data=data)
@@ -90,7 +120,7 @@ class Tournament:
     def matches(self, include_attachments=False, session=None, loop=None):
         client = Client(session=session, loop=loop)
         data = client.get(self.base_url() + '/matches.json')
-        return build_matches(data)
+        return self.build_matches(data)
 
     def match(self, mid, include_attachments=False, session=None, loop=None):
         client = Client(session=session, loop=loop)

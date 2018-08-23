@@ -15,17 +15,16 @@ class Client:
         self.loop = loop
 
     def raise_error(self, r):
-        print(r)
         if r.status == 401:
-            raise error.AuthenticationError(status=r.status,message="Unauthorized (Invalid API key or insufficient permissions)")
+            raise error.AuthenticationError(status=r.status,message="Unauthorized (Invalid API key or insufficient permissions)",request=r)
         elif r.status == 404:
-            raise error.NotFoundError(status=r.status,message="Object not found within your account scope")
+            raise error.NotFoundError(status=r.status,message="Object not found within your account scope",request=r)
         elif r.status == 406:
-            raise error.InvalidFormatError(status=r.status,message="Requested format is not supported - request JSON or XML only")
+            raise error.InvalidFormatError(status=r.status,message="Requested format is not supported - request JSON or XML only",request=r)
         elif r.status == 422:
-            raise error.ValidationError(status=r.status,message="Validation error(s) for create or update method")
+            raise error.ValidationError(status=r.status,message="Validation error(s) for create or update method",request=r,json_body=r.json())
         else:
-            raise error.ServerError(status=r.status,message="Something went wrong on Challonge's end. If you continually receive this, please contact them.")
+            raise error.ServerError(status=r.status,message="Something went wrong on Challonge's end. If you continually receive this, please contact them.",request=r)
 
     def get(self, url, params={}, response_type='json'):
         return self.loop.run_until_complete(self.async_get(url, response_type=response_type))
