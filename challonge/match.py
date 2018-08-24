@@ -2,7 +2,7 @@ import asyncio
 from aiohttp import ClientSession
 import json
 import challonge
-from challonge import api_base, error, Client
+from challonge import api_base, error
 import copy
 
 class Match:

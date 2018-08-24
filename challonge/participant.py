@@ -2,7 +2,7 @@ import asyncio
 from aiohttp import ClientSession
 import json
 import challonge
-from challonge import api_base, error, Client
+from challonge import api_base, error
 from collections import namedtuple
 import copy
 
@@ -22,55 +22,67 @@ class Participant:
     def tournament_url(self):
         return api_base + 'tournaments/' + str(self.tournament_id)
 
-    def update(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
-
-        params = { 'participant' : {} }
-
-        for k in self.UPDATE_FIELDS:
-            if hasattr(self, k):
-                if getattr(self, k) != getattr(self.original, k):
-                    params['participant'][k] = getattr(self, k)
-        
-        data = client.put(self.base_url() + '.json', params)
-
-        if data is not None:
-            for k in data['participant']:
-                setattr(self, k, data['participant'][k])
+    def update_object(self, data):
+        for k in data['participant']:
+            if k == 'matches':
+                setattr(self, k, self.build_participants(data['participant']['matches']))
+            else:
+                setattr(self, k, data['tournament'][k])
 
         self.original = copy.copy(self)
+
+        return self
+
+    def update_params(self):
+        params = { 'api_key' : challonge.api_key , 'participant' : {} }
+        for k in self.UPDATE_FIELDS:
+            if getattr(self, k) != getattr(self.original, k):
+                params['participant'][k] = getattr(self, k)
+        return params
+
+    # Add participant to the tournament
+    async def create(self, session):
+        params = self.update_params()
+        if 'id' in params: params.pop('id', None)
+        async with session.post(self.base_url() + '.json', json=params) as r:
+            if r.status == 200:
+                data = r.json()
+                return self.update_object(data)
+            else:
+                error.raise_error(r)
+
+    async def update(self, session):
+        params = self.update_params()
+        
+        async with session.put(self.base_url() + '.json', json=params) as r:
+            if r.status == 200:
+                data = r.json()
+                return self.update_object(data)
+            else:
+                error.raise_error(r)
 
     # Remove participant from the tournament
-    def remove(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
-        return client.delete(self.base_url() + '.json')
+    async def delete(self, session):
+        async with session.delete(self.base_url() + '.json') as r:
+            if r.status == 200:
+                return True
+            else:
+                error.raise_error(r)
 
-    # Add participant from the tournament
-    def add(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
+    async def checkin(self, session):
+        async with session.post(self.base_url() + '/check_in.json', json={ 'api_key' : challonge.api_key }) as r:
+            if r.status == 200:
+                return True
+            else:
+                error.raise_error(r)
 
-        params = { 'participant' : {} }
-
-        for k in self.UPDATE_FIELDS:
-            if hasattr(self, k):
-                params['participant'][k] = getattr(self, k)
-
-        data = client.post(self.tournament_url() + '/participants.json', params)
-
-        if data is not None:
-            for k in data['participant']:
-                setattr(self, k, data['participant'][k])
-
-        self.original = copy.copy(self)
-
-    def checkin(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
-        return client.delete(self.base_url() + '/check_in.json')
-
-    def undo_checkin(self, session=None, loop=None):
-        client = Client(session=session, loop=loop)
-        return client.delete(self.base_url() + '/undo_check_in.json')
+    async def undo_checkin(self, session):
+        async with session.post(self.base_url() + '/undo_check_in.json', json={ 'api_key' : challonge.api_key }) as r:
+            if r.status == 200:
+                return True
+            else:
+                error.raise_error(r)
 
     # Get the next match or optional id
-    def winner(self):
+    async def winner(self):
         pass       

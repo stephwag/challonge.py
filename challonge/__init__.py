@@ -18,7 +18,6 @@ api_key = None
 api_base = 'https://api.challonge.com/v1/'
 
 from .error import *
-from .client import *
 from .participant import *
 from .match import *
 from .tournament import *
