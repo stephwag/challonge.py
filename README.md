@@ -2,6 +2,11 @@
 
 Python wrapper for the Challonge API
 
+## Install
+
+* `pip install git+https://github.com/stephwag/challonge.py.git --upgrade`
+* `import challonge`
+
 ## Example
 ```
 async def main():

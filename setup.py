@@ -16,8 +16,5 @@ setup(
     license='MIT',
     keywords='challonge api',
     include_package_data=True,
-    install_requires=[
-        'asyncio',
-        'aiohttp',
-    ]
+    install_requires=requirements
 )
