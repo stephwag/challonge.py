@@ -39,12 +39,13 @@ class Tournament:
         if include_matches: url += 'include_matches=1&'
 
         async with session as sess:
-            async with sess.get(url, params={'api_key': challonge.api_key}) as r:
-                if r.status == 200:
-                    data = await r.json()
-                    return self.update_object(data)
-                else:
-                    error.raise_error(r)
+            r = await sess.get(url, params={'api_key': challonge.api_key})
+
+            if r.status == 200:
+                data = await r.json()
+                return self.update_object(data)
+            else:
+                error.raise_error(r)
 
     async def update(self, session):
         params = { 'api_key' : challonge.api_key , 'tournament' : {} }
@@ -54,9 +55,9 @@ class Tournament:
                 params['tournament'][k] = getattr(self, k)
         
         async with session as sess:
-            async with sess.put(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params) as r:
+            r = await sess.put(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params)
                 if r.status == 200:
-                    data = await r.json()
+                    data = r.json()
                     return self.update_object(data)
                 else:
                     error.raise_error(r)
@@ -65,9 +66,9 @@ class Tournament:
         return client.delete(self.base_url() + '.json')
 
         async with session as sess:
-            async with sess.delete(self.base_url() + '.json', params={'api_key': challonge.api_key}) as r:
+            r = await sess.delete(self.base_url() + '.json', params={'api_key': challonge.api_key})
                 if r.status == 200:
-                    return await True
+                    return True
                 else:
                     error.raise_error(r)
     
@@ -75,7 +76,7 @@ class Tournament:
         async with session as sess:
             async with sess.get('https://challonge.com/' + str(self.url) + '.svg', params={'api_key': challonge.api_key}) as r:
                 if r.status == 200:
-                    return await r.text()
+                    return r.text()
                 else:
                     error.raise_error(r)
 
