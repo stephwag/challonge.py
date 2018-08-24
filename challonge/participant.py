@@ -46,7 +46,7 @@ class Participant:
         if 'id' in params: params.pop('id', None)
         async with session.post(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return self.update_object(data['participant'])
             else:
                 error.raise_error(r)
@@ -56,7 +56,7 @@ class Participant:
         
         async with session.put(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return self.update_object(data['participant'])
             else:
                 error.raise_error(r)
@@ -64,8 +64,23 @@ class Participant:
     async def get(self, session, include_matches=False):
         async with session.get(self.base_url() + '.json', params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return Participant(data=data)
+            else:
+                error.raise_error(r)
+
+    # Get a participant by searching for one with a value set in the misc field
+    # This is not part of the API itself but it's helpful to have.
+    async def get_by_misc(self, session, misc, include_matches=False):
+        async with session.get(self.tournament_url() + '/participants.json', params={'api_key': challonge.api_key}) as r:
+            if r.status == 200:
+                data = await r.json()
+
+                for p in data:
+                    if p['participant']['misc'] == misc:
+                        return Participant(data=p['participant'])
+
+                return None
             else:
                 error.raise_error(r)
 

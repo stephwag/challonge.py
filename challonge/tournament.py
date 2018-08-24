@@ -61,7 +61,7 @@ class Tournament:
         if 'id' in params: params.pop('id', None)
         async with session.post(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return self.update_object(data['tournament'])
             else:
                 error.raise_error(r)
@@ -71,7 +71,7 @@ class Tournament:
         
         async with session.put(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return self.update_object(data['tournament'])
             else:
                 error.raise_error(r)
@@ -86,7 +86,7 @@ class Tournament:
     async def svg(self, session):
         async with session.get('https://challonge.com/' + str(self.url) + '.svg', params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
-                return r.text()
+                return await r.text()
             else:
                 error.raise_error(r)
 
@@ -107,7 +107,7 @@ class Tournament:
     async def get_participant(self, session, pid, include_matches=False):
         async with session.get(self.base_url() + '/participants/' + str(pid) + '.json', params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return Participant(data=data['participant'])
             else:
                 error.raise_error(r)
@@ -117,7 +117,7 @@ class Tournament:
 
         async with session.post(self.base_url() + '/participants.json', json=data) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return Participant(data=data['participant'])
             else:
                 error.raise_error(r)
@@ -159,7 +159,7 @@ class Tournament:
 
         async with session.get(url, params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
-                data = r.json()
+                data = await r.json()
                 return Match(data=data)
             else:
                 error.raise_error(r)
