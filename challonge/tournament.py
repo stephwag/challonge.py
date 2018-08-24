@@ -44,7 +44,7 @@ class Tournament:
         if data is not None:
             return self.update_object(data=data)
 
-    async def async_init(self, session, tid, include_participants=False, include_matches=False):
+    async def get(self, session, tid, include_participants=False, include_matches=False):
         url = api_base + 'tournaments/' + str(tid) + '.json?'
         if include_participants: url += 'include_participants=1&'
         if include_matches: url += 'include_matches=1&'
