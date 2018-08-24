@@ -38,9 +38,7 @@ class Tournament:
         if include_participants: url += 'include_participants=1&'
         if include_matches: url += 'include_matches=1&'
 
-        async with session as sess:
-            r = await sess.get(url, params={'api_key': challonge.api_key})
-
+        async with session.get(url, params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
                 data = await r.json()
                 return self.update_object(data)
