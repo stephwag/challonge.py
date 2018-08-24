@@ -56,21 +56,21 @@ class Tournament:
         
         async with session as sess:
             r = await sess.put(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params)
-                if r.status == 200:
-                    data = r.json()
-                    return self.update_object(data)
-                else:
-                    error.raise_error(r)
+            if r.status == 200:
+                data = r.json()
+                return self.update_object(data)
+            else:
+                error.raise_error(r)
 
     async def delete(self, session):
         return client.delete(self.base_url() + '.json')
 
         async with session as sess:
             r = await sess.delete(self.base_url() + '.json', params={'api_key': challonge.api_key})
-                if r.status == 200:
-                    return True
-                else:
-                    error.raise_error(r)
+            if r.status == 200:
+                return True
+            else:
+                error.raise_error(r)
     
     async def svg(self, session):
         async with session as sess:
