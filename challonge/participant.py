@@ -11,8 +11,8 @@ class Participant:
     UPDATE_FIELDS = ['name', 'challonge_username', 'email', 'seed', 'misc']
 
     def __init__(self, data=None):
-        for k in data['participant']:
-            setattr(self, k, data['participant'][k])
+        for k in data:
+            setattr(self, k, data[k])
 
         self.original = copy.copy(self)
 
@@ -23,11 +23,11 @@ class Participant:
         return api_base + 'tournaments/' + str(self.tournament_id)
 
     def update_object(self, data):
-        for k in data['participant']:
+        for k in data:
             if k == 'matches':
-                setattr(self, k, self.build_participants(data['participant']['matches']))
+                setattr(self, k, self.build_participants(data['matches']))
             else:
-                setattr(self, k, data['tournament'][k])
+                setattr(self, k, data[k])
 
         self.original = copy.copy(self)
 
@@ -47,7 +47,7 @@ class Participant:
         async with session.post(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
                 data = r.json()
-                return self.update_object(data)
+                return self.update_object(data['participant'])
             else:
                 error.raise_error(r)
 
@@ -57,7 +57,15 @@ class Participant:
         async with session.put(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
                 data = r.json()
-                return self.update_object(data)
+                return self.update_object(data['participant'])
+            else:
+                error.raise_error(r)
+
+    async def get(self, session, include_matches=False):
+        async with session.get(self.base_url() + '.json', params={'api_key': challonge.api_key}) as r:
+            if r.status == 200:
+                data = r.json()
+                return Participant(data=data)
             else:
                 error.raise_error(r)
 

@@ -21,13 +21,13 @@ class Tournament:
         return (api_base + 'tournaments/' + str(self.id))
 
     def update_object(self, data):
-        for k in data['tournament']:
+        for k in data:
             if k == 'participants':
-                setattr(self, k, self.build_participants(data['tournament']['participants']))
+                setattr(self, k, self.build_participants(data['participants']))
             elif k == 'matches':
-                setattr(self, k, self.build_participants(data['tournament']['matches']))
+                setattr(self, k, self.build_participants(data['matches']))
             else:
-                setattr(self, k, data['tournament'][k])
+                setattr(self, k, data[k])
 
         self.original = copy.copy(self)
 
@@ -42,17 +42,17 @@ class Tournament:
 
     def __init__(self, data=None):
         if data is not None:
-            return self.update_object(data=data)
+            self.update_object(data=data)
 
-    async def get(self, session, tid, include_participants=False, include_matches=False):
-        url = api_base + 'tournaments/' + str(tid) + '.json?'
+    async def get(self, session, include_participants=False, include_matches=False):
+        url = self.base_url() + '.json?'
         if include_participants: url += 'include_participants=1&'
         if include_matches: url += 'include_matches=1&'
 
         async with session.get(url, params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
                 data = await r.json()
-                return self.update_object(data)
+                return self.update_object(data['tournament'])
             else:
                 error.raise_error(r)
 
@@ -62,17 +62,17 @@ class Tournament:
         async with session.post(api_base + 'tournaments/' + str(self.id) + '.json?api_key=' + challonge.api_key, json=params) as r:
             if r.status == 200:
                 data = r.json()
-                return self.update_object(data)
+                return self.update_object(data['tournament'])
             else:
                 error.raise_error(r)
 
     async def update(self, session):
         params = self.update_params()
         
-        async with session.put(self.base_url() + '.json?api_key=' + challonge.api_key, json=params) as r:
+        async with session.put(self.base_url() + '.json', json=params) as r:
             if r.status == 200:
                 data = r.json()
-                return self.update_object(data)
+                return self.update_object(data['tournament'])
             else:
                 error.raise_error(r)
 
@@ -108,7 +108,7 @@ class Tournament:
         async with session.get(self.base_url() + '/participants/' + str(pid) + '.json', params={'api_key': challonge.api_key}) as r:
             if r.status == 200:
                 data = r.json()
-                return Participant(data=data)
+                return Participant(data=data['participant'])
             else:
                 error.raise_error(r)
 
@@ -118,7 +118,7 @@ class Tournament:
         async with session.post(self.base_url() + '/participants.json', json=data) as r:
             if r.status == 200:
                 data = r.json()
-                return Participant(data=data)
+                return Participant(data=data['participant'])
             else:
                 error.raise_error(r)
 
